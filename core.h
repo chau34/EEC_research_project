@@ -9,4 +9,7 @@
 // caches, core affinity, thermal scheduling/throttling
 
 #pragma once
+
+#define NUM_CORES 8
+
 void runProcess(int pid);

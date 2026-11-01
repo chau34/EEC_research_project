@@ -11,10 +11,12 @@
 #pragma once
 #include <queue>
 #include <memory>
+#include <array>
 #include "process.h"
+#include "core.h"
 
 extern std::queue<int> ready_queue;
-extern std::shared_ptr<Process> current_process;
+extern std::array<std::shared_ptr<Process>, NUM_CORES> current_process;
 
 #define TIME_QUANTUM 10
 
@@ -27,4 +29,4 @@ void schedule();
 void processArrives(int pid);
 
 /* Removes process forever, should be the process currently running */
-void processExits(int pid);
+bool processExits(int pid);

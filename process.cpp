@@ -16,23 +16,22 @@ std::vector<std::shared_ptr<Process>> process_list;
 //         event_queue.pop();
 // }
 
+
 void yield() {
-    // TODO: calculate remaining again because we yield before finishing time quantum
-            // if not done so already
+    // TODO: calculate time spent of current process because yield before finishing time quantum
     
 }
-    
 
-void contextSwitchIn(int pid) {
-    current_process = getProcess(pid);
+void contextSwitchIn(int core, int pid) {
+    current_process[core] = getProcess(pid);
+    current_process[core]->last_run = real_time;
     // generate exit event if current process will finish before time quantum
-    if (current_process)
-        addExitEvent(current_process->PID);
+    addExitEvent(core, current_process[core]->PID);
     // TODO: energy count
 }
 
-void contextSwitchOut() {
-    current_process = NULL;
+void contextSwitchOut(int core) {
+    current_process[core] = NULL;
     // TODO: energy count
 }
 
