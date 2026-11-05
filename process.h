@@ -15,6 +15,7 @@ struct Process {
     std::uint64_t arrival;
     std::uint64_t completion;
     std::uint64_t last_run;
+    int last_core;
     int remaining;
     int PID;
 };

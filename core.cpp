@@ -1,5 +1,11 @@
 #include "core.h"
 
-void runProcess(int pid) {
+std::shared_ptr<Core> cores[NUM_CORES];
+
+void initCores() {
+    // TODO: set up cores
+}
+
+void calculateEnergy() {
     
 }
