@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <vector>
 
+/* DO NOT change the order of the event types */
 enum class EventType {
     ProcessExit,
     Timer,

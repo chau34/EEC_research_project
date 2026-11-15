@@ -1,4 +1,5 @@
 #include "core.h"
+#include "event.h"
 
 std::shared_ptr<Core> cores[NUM_CORES];
 
@@ -11,10 +12,16 @@ void calculateEnergy() {
     
 }
 
-void changePState(int core) {
+void changePState(int core, P_STATE p_state) {
+    cores[core]->p_state = p_state;
+    // TODO: energy
 
+    cores[core]->last_p_change = real_time;
 }
 
-void changeCState(int core) {
+void changeCState(int core, C_STATE c_state) {
+    cores[core]->c_state = c_state;
+    // TODO: energy
 
+    cores[core]->last_c_change = real_time;
 }
