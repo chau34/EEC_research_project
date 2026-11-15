@@ -16,7 +16,6 @@
 #include "core.h"
 
 extern std::queue<int> ready_queue;
-extern std::array<std::shared_ptr<Process>, NUM_CORES> current_process;
 
 #define TIME_QUANTUM 10
 

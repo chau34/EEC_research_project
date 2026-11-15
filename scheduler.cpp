@@ -1,10 +1,10 @@
 #include "scheduler.h"
 #include "process.h"
 #include "event.h"
+#include "core.h"
 #include <iostream>
 
 std::queue<int> ready_queue;
-std::array<std::shared_ptr<Process>, NUM_CORES> current_process;
 
 /* This will never be called in a cooperative scheduler
  * as TIME_QUANTUM will be infinite */
@@ -16,8 +16,8 @@ void schedule() {
     if (!ready_queue.empty()) {
         int pid = ready_queue.front();
         ready_queue.pop();
-        if (current_process.at(0))
-            ready_queue.push(current_process[0]->PID);
+        if (cores[0]->running)
+            ready_queue.push(cores[0]->running->PID);
         contextSwitchOut(0);
         contextSwitchIn(0, pid);    
     }
@@ -26,7 +26,7 @@ void schedule() {
 /* Puts process in ready queue of scheduler */
 void processArrives(int pid) {
     ready_queue.push(pid);
-    if (!current_process.at(0))
+    if (!cores[0]->running)
         schedule();
 }
 
@@ -34,10 +34,10 @@ void processArrives(int pid) {
 bool processExits(int pid) {
     bool found = false;
     for (int core = 0; core < NUM_CORES; core++) {
-        std::shared_ptr<Process> p = current_process[core];
+        std::shared_ptr<Process> p = cores[core]->running;
         if (p && p->PID == pid) {
             p->completion = real_time;
-            current_process[core] = NULL;
+            cores[core]->running = NULL;
             found = true;
             break;
         }

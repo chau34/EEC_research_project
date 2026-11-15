@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <memory>
+#include "process.h"
 
 #define NUM_CORES 8
 
@@ -40,6 +41,7 @@ struct Core {
     std::uint64_t last_c_change;        // used to calculate energy used by c_state at interrupts
     std::uint64_t last_p_change;        // used to calculate energy used by p_state at interrupts
     std::uint64_t last_cache_flush;
+    std::shared_ptr<Process> running;
 };
 
 extern std::shared_ptr<Core> cores[NUM_CORES];

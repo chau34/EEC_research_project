@@ -23,15 +23,15 @@ void yield() {
 }
 
 void contextSwitchIn(int core, int pid) {
-    current_process[core] = getProcess(pid);
-    current_process[core]->last_run = real_time;
+    cores[core]->running = getProcess(pid);
+    cores[core]->running->last_run = real_time;
     // generate exit event if current process will finish before time quantum
-    addExitEvent(core, current_process[core]->PID);
+    addExitEvent(core, cores[core]->running->PID);
     // TODO: energy count
 }
 
 void contextSwitchOut(int core) {
-    current_process[core] = NULL;
+    cores[core]->running = NULL;
     // TODO: energy count
 }
 

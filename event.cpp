@@ -1,6 +1,7 @@
 #include "event.h"
 #include "scheduler.h"
 #include "process.h"
+#include "core.h"
 #include <random>
 #include <stdio.h>
 
@@ -13,6 +14,7 @@ std::priority_queue<Event, std::vector<Event>, Compare> event_queue;
 
 /* Start the first timer event and run */
 void startSimulation() {
+    initCores();
     Event e = {EventType::Timer, real_time = 10};
     event_queue.push(e);
     eventLoop();
@@ -53,16 +55,16 @@ int getRemainingQuantum() {
  */
 void addExitEvent(int core, int pid) {
     int rem = getRemainingQuantum();
-    if (current_process[core]->remaining <= rem) {
+    if (cores[core]->running->remaining <= rem) {
         Event e = {EventType::ProcessExit, 
-            real_time + current_process[core]->remaining, pid};
+            real_time + cores[core]->running->remaining, pid};
         event_queue.push(e);
     }
 }
 
 void calculateTimeSpent(int core) {
     // calculate time spent
-    std::shared_ptr<Process> p = current_process[core];
+    std::shared_ptr<Process> p = cores[core]->running;
     if (p)
         p->remaining -= real_time - p->last_run;
 }
@@ -71,7 +73,7 @@ bool staleExitEvent(int pid, int time) {
     // check which core is running this event and whether it's stale
     bool stale = true;
     for (int i = 0; i < NUM_CORES; i++) {
-        std::shared_ptr<Process> p = current_process[i];
+        std::shared_ptr<Process> p = cores[i]->running;
         if (p && p->PID == pid && p->last_run + p->remaining == time) {
             stale = false;
             break;
@@ -86,7 +88,7 @@ void Event::runEvent() {
             // check all cores to add exit events
             std::shared_ptr<Process> prev[NUM_CORES];
             for (int i = 0; i < NUM_CORES; i++) {
-                prev[i] = current_process[i];
+                prev[i] = cores[i]->running;
                 calculateTimeSpent(i);
             }
             timerInterrupt();
@@ -95,9 +97,9 @@ void Event::runEvent() {
             event_queue.push(e);
             // only add exit event if running same process as before
             for (int i = 0; i < NUM_CORES; i++) {
-                if (prev[i] && (prev[i] == current_process[i])) {
-                    current_process[i]->last_run = real_time;
-                    addExitEvent(i, current_process[i]->PID);
+                if (prev[i] && (prev[i] == cores[i]->running)) {
+                    cores[i]->running->last_run = real_time;
+                    addExitEvent(i, cores[i]->running->PID);
                 }
             }
             break;
