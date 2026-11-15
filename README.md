@@ -2,13 +2,13 @@ Simulator to compare energy efficiency of preemptive and cooperative schedulers.
 Things implemented but can be improved upon: 
   - Multi-core implementation
   - C states and P states
+  - core affinity/caches
 Things to start:
-  - Energy calculations for context switching and running the scheduler
+  - Energy calculations for context switching, running the scheduler, changing states, etc.
   - Separation between preemptive and cooperative scheduling algorithms (currently running preemptive Round Robin)
   - Context switching timing delay (currently takes no time to context switch)
   - Fancy stuff to emulate real systems: 
     - yielding
-    - core affinity/caches
     - thermal design power
   - I/O interface (in progress - Chau)
   - Energy consumption of storage devices

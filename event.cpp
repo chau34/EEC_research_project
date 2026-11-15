@@ -82,6 +82,15 @@ bool staleExitEvent(int pid, int time) {
     return stale;
 }
 
+void cache_update() {
+    for (int i = 0; i < NUM_CORES; i++) {
+        if (real_time - cores[i]->last_cache_flush >= FLUSH_QUANTUM) {
+            cores[i]->last_cache_flush = real_time;
+            // TODO: energy used by flushing?
+        }
+    }
+}
+
 void Event::runEvent() {
     switch (this->type) {
         case EventType::Timer: {
@@ -102,6 +111,8 @@ void Event::runEvent() {
                     addExitEvent(i, cores[i]->running->PID);
                 }
             }
+            // flush caches to simulate eviction/full cache
+            cache_update();
             break;
         }
         case EventType::ProcessArrival: {

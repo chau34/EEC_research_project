@@ -3,6 +3,8 @@
 #include "scheduler.h"
 #include "core.h"
 
+#define CORE_AFFINITY_PENALTY 3
+
 std::vector<std::shared_ptr<Process>> process_list;
 
 // /* Used for yield in case exit event is scheduled, 
@@ -22,12 +24,21 @@ void yield() {
     
 }
 
-void contextSwitchIn(int core, int pid) {
-    cores[core]->running = getProcess(pid);
-    cores[core]->running->last_run = real_time;
+void contextSwitchIn(int core_id, int pid) {
+    std::shared_ptr<Core> core = cores[core_id];
+    std::shared_ptr<Process> process = getProcess(pid);
+
+    // core affinity penalty
+    if ((process->last_core != core_id)
+    || (core->last_cache_flush >= process->last_run))
+        process->remaining += CORE_AFFINITY_PENALTY;
+
+    core->running = process;
+    core->running->last_run = real_time;
     // generate exit event if current process will finish before time quantum
-    addExitEvent(core, cores[core]->running->PID);
+    addExitEvent(core_id, core->running->PID);
     // TODO: energy count
+    
 }
 
 void contextSwitchOut(int core) {

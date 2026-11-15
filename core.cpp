@@ -21,6 +21,8 @@ void changePState(int core, P_STATE p_state) {
 
 void changeCState(int core, C_STATE c_state) {
     cores[core]->c_state = c_state;
+    if (c_state == C3)
+        cores[core]->last_cache_flush = real_time;
     // TODO: energy
 
     cores[core]->last_c_change = real_time;
