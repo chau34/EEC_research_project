@@ -7,6 +7,7 @@ Things to start:
   - Energy calculations for context switching, running the scheduler, changing states, etc.
   - Separation between preemptive and cooperative scheduling algorithms (currently running preemptive Round Robin)
   - Context switching timing delay (currently takes no time to context switch)
+  - Test cases (and add make test to Makefile)
   - Fancy stuff to emulate real systems: 
     - yielding
     - thermal design power

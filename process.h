@@ -11,11 +11,18 @@
 #include <memory>
 #include <cstdint>
 
+/* IO items for when processes will need to block for IO */
+struct IO {
+    std::uint64_t start_time;
+    std::uint64_t duration;
+};
+
 struct Process {
+    std::vector<IO> io;
     std::uint64_t arrival;
     std::uint64_t completion;
     std::uint64_t last_run;
-    int last_core;
+    signed int last_core;
     int remaining;
     int PID;
 };

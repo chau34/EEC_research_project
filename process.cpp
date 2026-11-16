@@ -18,7 +18,7 @@ std::vector<std::shared_ptr<Process>> process_list;
 //         event_queue.pop();
 // }
 
-
+/* Used for cooperative when IO event occurs */
 void yield() {
     // TODO: calculate time spent of current process because yield before finishing time quantum
     
@@ -35,6 +35,7 @@ void contextSwitchIn(int core_id, int pid) {
 
     core->running = process;
     core->running->last_run = real_time;
+    // TODO: generate IO event if there is one within time quantum
     // generate exit event if current process will finish before time quantum
     addExitEvent(core_id, core->running->PID);
     // TODO: energy count

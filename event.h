@@ -16,7 +16,9 @@
 enum class EventType {
     ProcessExit,
     Timer,
-    ProcessArrival
+    ProcessArrival,
+    IOStart,
+    IOEnd
 };
 
 struct Event {

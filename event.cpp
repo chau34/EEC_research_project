@@ -30,7 +30,10 @@ void generateWorkload(int seed) {
 
     // TODO: add other types of workload distribution
     std::uniform_int_distribution<int> gap_dist (1, 100);
-    std::uniform_int_distribution<int> work_dist (5, 50);
+    std::uniform_int_distribution<int> work_dist (100, 1000);
+    std::uniform_int_distribution<int> io_num_dist (1, 5);
+    std::uniform_int_distribution<int> io_gap_dist (1, 10);
+    std::uniform_int_distribution<int> io_duration_dist (20, 50);
 
     // TODO: change standard number of processes? is 1000 processes too much?
     std::uint64_t last_time = 0;
@@ -38,7 +41,17 @@ void generateWorkload(int seed) {
         std::uint64_t arrival = last_time + gap_dist(generator);
         last_time = arrival;
         int workload = work_dist(generator);
-        std::shared_ptr<Process> p = std::make_shared<Process>(Process{arrival, 0, 0, workload, i});
+        // generate IO times and durations
+        int io_num = io_num_dist(generator);
+        std::vector<IO> io;
+        int io_start = arrival;
+        for (int i = 0; i < io_num; i++) {
+            io_start += io_gap_dist(generator);
+            int io_duration = io_duration_dist(generator);
+            io.push_back(IO{io_start, io_duration});
+        }
+        std::shared_ptr<Process> p = std::make_shared<Process>(
+            Process{io, arrival, 0, 0, -1, workload, i});
         process_list.push_back(p);
         Event e = {EventType::ProcessArrival, arrival, i};
         event_queue.push(e);
@@ -125,6 +138,13 @@ void Event::runEvent() {
                 if (finished_proc == PROCESSES)
                     endSimulation();
             }
+            break;
+        }
+        // TODO
+        case EventType::IOStart: {
+            break;
+        }
+        case EventType::IOEnd: {
             break;
         }
     }   
