@@ -23,6 +23,7 @@ struct Process {
     std::uint64_t completion;
     std::uint64_t last_run;
     signed int last_core;
+    int finished;
     int remaining;
     int PID;
 };
@@ -31,6 +32,8 @@ extern std::vector<std::shared_ptr<Process>> process_list;
 
 std::shared_ptr<Process> getProcess(int pid);
 
+void blockIO(int pid);
+void yield(int pid);
 void contextSwitchIn(int core, int pid);
 void contextSwitchOut(int core);
 

@@ -11,6 +11,8 @@
 #include <queue>
 #include <cstdint>
 #include <vector>
+#include <memory>
+#include "process.h"
 
 /* DO NOT change the order of the event types */
 enum class EventType {
@@ -46,7 +48,10 @@ void startSimulation();
 
 void generateWorkload(int seed);
 
+void addIOEvent(int pid);
 void addExitEvent(int core, int pid);
+
+void calculateTimeSpent(std::shared_ptr<Process> p);
 
 extern std::uint64_t real_time;
 extern std::priority_queue<Event, std::vector<Event>, Compare> event_queue;

@@ -32,7 +32,7 @@ void generateWorkload(int seed) {
     std::uniform_int_distribution<int> gap_dist (1, 100);
     std::uniform_int_distribution<int> work_dist (100, 1000);
     std::uniform_int_distribution<int> io_num_dist (1, 5);
-    std::uniform_int_distribution<int> io_gap_dist (1, 10);
+    std::uniform_int_distribution<int> io_gap_dist (5, 15);
     std::uniform_int_distribution<int> io_duration_dist (20, 50);
 
     // TODO: change standard number of processes? is 1000 processes too much?
@@ -44,14 +44,14 @@ void generateWorkload(int seed) {
         // generate IO times and durations
         int io_num = io_num_dist(generator);
         std::vector<IO> io;
-        int io_start = arrival;
+        int io_start = 0;
         for (int i = 0; i < io_num; i++) {
             io_start += io_gap_dist(generator);
             int io_duration = io_duration_dist(generator);
             io.push_back(IO{io_start, io_duration});
         }
         std::shared_ptr<Process> p = std::make_shared<Process>(
-            Process{io, arrival, 0, 0, -1, workload, i});
+            Process{io, arrival, 0, 0, -1, 0, workload, i});
         process_list.push_back(p);
         Event e = {EventType::ProcessArrival, arrival, i};
         event_queue.push(e);
@@ -64,8 +64,7 @@ int getRemainingQuantum() {
 
 /* Calculate whether process exit event should be added
  * Only push if less than time quantum, should never have exit events
- * between quantums/other events
- */
+ * between quantums/other events */
 void addExitEvent(int core, int pid) {
     int rem = getRemainingQuantum();
     if (cores[core]->running->remaining <= rem) {
@@ -75,11 +74,25 @@ void addExitEvent(int core, int pid) {
     }
 }
 
-void calculateTimeSpent(int core) {
+/* Calculate whether proccess IO start and end event 
+ * should be added */
+void addIOEvent(int pid) {
+    std::shared_ptr<Process> p = getProcess(pid);
+    if (!p->io.empty() && p->finished <= p->io.front().start_time &&
+    p->finished + getRemainingQuantum() > p->io.front().start_time){
+        int io_start = p->io.front().start_time - p->finished;
+        Event e1 = {EventType::IOStart, real_time + io_start, pid};
+        event_queue.push(e1);
+    }
+}
+
+void calculateTimeSpent(std::shared_ptr<Process> p) {
     // calculate time spent
-    std::shared_ptr<Process> p = cores[core]->running;
-    if (p)
-        p->remaining -= real_time - p->last_run;
+    if (p) {
+        int runtime = real_time - p->last_run;
+        p->remaining -= runtime;
+        p->finished += runtime;
+    }
 }
 
 bool staleExitEvent(int pid, int time) {
@@ -111,16 +124,17 @@ void Event::runEvent() {
             std::shared_ptr<Process> prev[NUM_CORES];
             for (int i = 0; i < NUM_CORES; i++) {
                 prev[i] = cores[i]->running;
-                calculateTimeSpent(i);
+                calculateTimeSpent(cores[i]->running);
             }
             timerInterrupt();
             // generate the next timer event
             Event e = {EventType::Timer, real_time + TIME_QUANTUM};
             event_queue.push(e);
-            // only add exit event if running same process as before
+            // only add exit/IO event if running same process as before
             for (int i = 0; i < NUM_CORES; i++) {
                 if (prev[i] && (prev[i] == cores[i]->running)) {
                     cores[i]->running->last_run = real_time;
+                    addIOEvent(cores[i]->running->PID);
                     addExitEvent(i, cores[i]->running->PID);
                 }
             }
@@ -142,9 +156,11 @@ void Event::runEvent() {
         }
         // TODO
         case EventType::IOStart: {
+            blockIO(this->pid);
             break;
         }
         case EventType::IOEnd: {
+            processArrives(this->pid);
             break;
         }
     }   

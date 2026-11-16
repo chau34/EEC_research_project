@@ -3,6 +3,7 @@ Things implemented but can be improved upon:
   - Multi-core implementation
   - C states and P states
   - core affinity/caches
+  - I/O interface
 Things to start:
   - Energy calculations for context switching, running the scheduler, changing states, etc.
   - Separation between preemptive and cooperative scheduling algorithms (currently running preemptive Round Robin)
@@ -11,6 +12,5 @@ Things to start:
   - Fancy stuff to emulate real systems: 
     - yielding
     - thermal design power
-  - I/O interface (in progress - Chau)
   - Energy consumption of storage devices
   - Better process implementation for various types of processes in a system (eg. CPU-bound or I/O bound processes, different kinds of workload)
