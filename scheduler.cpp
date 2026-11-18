@@ -5,25 +5,26 @@
 
 std::queue<int> ready_queue;
 
-/* This will never be called in a cooperative scheduler
- * as TIME_QUANTUM will be infinite */
+/* This should never be called in a cooperative scheduler */
 void timerInterrupt() {
+    // this should never happen, but just in case
+    if (sched_mode == SchedulerMode::Cooperative)
+        return;
+    for (int i = 0; i < NUM_CORES && !ready_queue.empty(); i++) {
+        if (cores[i]->running && !cores[i]->context_switching) {
+            int pid = ready_queue.front();
+            ready_queue.pop();
+            ready_queue.push(cores[i]->running->PID);
+            contextSwitchOut(i);
+            contextSwitchIn(i, pid);
+        }
+    }
     schedule();
 }
 
 void schedule() {
     switch(sched_mode) {
-        case SchedulerMode::Preemptive: {
-            for (int i = 0; i < NUM_CORES && !ready_queue.empty(); i++) {
-                int pid = ready_queue.front();
-                ready_queue.pop();
-                if (cores[i]->running)
-                    ready_queue.push(cores[i]->running->PID);
-                contextSwitchOut(i);
-                contextSwitchIn(i, pid);
-            }
-            return;
-        }
+        case SchedulerMode::Preemptive:
         case SchedulerMode::Cooperative: {
             for (int i = 0; i < NUM_CORES && !ready_queue.empty(); i++) {
                 if (!cores[i]->running) {

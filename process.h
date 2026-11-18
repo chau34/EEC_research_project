@@ -37,3 +37,4 @@ void yield(int pid);
 void contextSwitchIn(int core, int pid);
 void contextSwitchOut(int core);
 
+extern void contextSwitchFinish(int pid);

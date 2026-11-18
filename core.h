@@ -43,6 +43,8 @@ struct Core {
     std::uint64_t last_cache_flush;
     std::shared_ptr<Process> running;
     int last_pid;
+    bool context_switching;
+    bool changing_c_state;
 };
 
 extern std::shared_ptr<Core> cores[NUM_CORES];

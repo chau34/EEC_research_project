@@ -103,17 +103,16 @@ void calculateTimeSpent(std::shared_ptr<Process> p) {
     }
 }
 
-bool staleExitEvent(int pid, int time) {
+bool staleExitEvent(int pid, std::uint64_t time) {
     // check which core is running this event and whether it's stale
-    bool stale = true;
     for (int i = 0; i < NUM_CORES; i++) {
         std::shared_ptr<Process> p = cores[i]->running;
-        if (p && p->PID == pid && p->last_run + p->remaining == time) {
-            stale = false;
-            break;
+        if (p && p->PID == pid && p->last_run + p->remaining == time
+        && !cores[i]->context_switching) {
+            return false;
         }
     }
-    return stale;
+    return true;
 }
 
 void Event::runEvent() {
@@ -123,7 +122,8 @@ void Event::runEvent() {
             std::shared_ptr<Process> prev[NUM_CORES];
             for (int i = 0; i < NUM_CORES; i++) {
                 prev[i] = cores[i]->running;
-                calculateTimeSpent(cores[i]->running);
+                if (!cores[i]->context_switching)
+                    calculateTimeSpent(cores[i]->running);
             }
             timerInterrupt();
             // generate the next timer event
@@ -131,7 +131,7 @@ void Event::runEvent() {
             event_queue.push(e);
             // only add exit/IO event if running same process as before
             for (int i = 0; i < NUM_CORES; i++) {
-                if (prev[i] && (prev[i] == cores[i]->running)) {
+                if (prev[i] && (prev[i] == cores[i]->running) && !cores[i]->context_switching) {
                     cores[i]->running->last_run = real_time;
                     addIOEvent(cores[i]->running->PID);
                     addExitEvent(i, cores[i]->running->PID);
@@ -158,6 +158,10 @@ void Event::runEvent() {
         }
         case EventType::IOEnd: {
             processArrives(this->pid);
+            break;
+        }
+        case EventType::ContextSwitchEnd: {
+            contextSwitchFinish(this->pid);
             break;
         }
     }   
