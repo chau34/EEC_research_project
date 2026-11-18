@@ -64,7 +64,7 @@ void generateWorkload(int seed) {
     }
 }
 
-int getRemainingQuantum() {
+std::uint64_t getRemainingQuantum() {
     if (sched_mode == SchedulerMode::Cooperative)
         return UINT_MAX;
     return TIME_QUANTUM - (real_time % TIME_QUANTUM);
@@ -74,7 +74,7 @@ int getRemainingQuantum() {
  * Only push if less than time quantum, should never have exit events
  * between quantums/other events */
 void addExitEvent(int core, int pid) {
-    int rem = getRemainingQuantum();
+    std::uint64_t rem = getRemainingQuantum();
     if (cores[core]->running->remaining <= rem) {
         Event e = {EventType::ProcessExit, 
             real_time + cores[core]->running->remaining, pid};

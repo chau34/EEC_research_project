@@ -21,6 +21,9 @@ std::vector<std::shared_ptr<Process>> process_list;
 /* Used when IO event occurs */
 void blockIO(int pid) {
     std::shared_ptr<Process> p = getProcess(pid);
+    // stale IO event
+    if (p->last_core < 0 || cores[p->last_core]->running != p)
+        return;
     calculateTimeSpent(p);
     Event e2 = {EventType::IOEnd, real_time + p->io.front().duration, pid};
     event_queue.push(e2);
@@ -39,13 +42,14 @@ void contextSwitchIn(int core_id, int pid) {
     std::shared_ptr<Process> process = getProcess(pid);
 
     // core affinity penalty
-    if ((process->last_core != core_id)
+    if ((process->last_core != core_id) || core->last_pid != pid
     || (core->last_cache_flush >= process->last_run))
         process->remaining += CORE_AFFINITY_PENALTY;
 
     core->running = process;
     core->running->last_core = core_id;
     core->running->last_run = real_time;
+    core->last_pid = pid;
     // generate IO event if there is one within time quantum
     addIOEvent(pid);
     // generate exit event if current process will finish before time quantum

@@ -14,18 +14,24 @@ void timerInterrupt() {
 void schedule() {
     switch(sched_mode) {
         case SchedulerMode::Preemptive: {
-            if (!ready_queue.empty()) {
+            for (int i = 0; i < NUM_CORES && !ready_queue.empty(); i++) {
                 int pid = ready_queue.front();
                 ready_queue.pop();
-                if (cores[0]->running)
-                    ready_queue.push(cores[0]->running->PID);
-                contextSwitchOut(0);
-                contextSwitchIn(0, pid);    
+                if (cores[i]->running)
+                    ready_queue.push(cores[i]->running->PID);
+                contextSwitchOut(i);
+                contextSwitchIn(i, pid);
             }
             return;
         }
         case SchedulerMode::Cooperative: {
-            // TODO: loop through all cores and assign process, if any
+            for (int i = 0; i < NUM_CORES && !ready_queue.empty(); i++) {
+                if (!cores[i]->running) {
+                    int pid = ready_queue.front();
+                    ready_queue.pop();
+                    contextSwitchIn(i, pid);
+                }
+            }
             return;
         }
         case SchedulerMode::Hybrid: {
@@ -38,8 +44,7 @@ void schedule() {
 /* Puts process in ready queue of scheduler */
 void processArrives(int pid) {
     ready_queue.push(pid);
-    if (!cores[0]->running)
-        schedule();
+    schedule();
 }
 
 /* Removes process forever, should be the process currently running */
@@ -49,12 +54,11 @@ bool processExits(int pid) {
         std::shared_ptr<Process> p = cores[core]->running;
         if (p && p->PID == pid) {
             p->completion = real_time;
-            cores[core]->running = NULL;
+            contextSwitchOut(core);
             found = true;
             break;
         }
     }
-    // printf("HERE %d\n", found);
     if (found)
         schedule();
     return found;
