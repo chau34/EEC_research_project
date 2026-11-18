@@ -2,11 +2,9 @@
 #include "scheduler.h"
 #include "process.h"
 #include "core.h"
-#include <random>
+#include "workload.h"
 #include <stdio.h>
 #include <climits>
-
-#define PROCESSES 1000
 
 int finished_proc = 0;
 
@@ -23,45 +21,24 @@ void startSimulation(SchedulerMode mode) {
         Event e = {EventType::Timer, real_time = 10};
         event_queue.push(e);
     }
+
+    // Avoid infinite loop
+    if (process_list.empty()) {
+        fprintf(stderr, "error: workload generated no processes\n");
+        exit(2);
+    }
     eventLoop();
+
+    fprintf(stderr, "error: simulation ended with %d of %zu processes finished\n",
+            finished_proc, process_list.size());
+    printReport(false);
+    exit(1);
 }
 
 void endSimulation() {
+    printReport(true);
     printf("Finish!\n");
     exit(0);
-}
-
-void generateWorkload(int seed) {
-    std::mt19937 generator(seed);
-
-    // TODO: add other types of workload distribution
-    std::uniform_int_distribution<int> gap_dist (1, 100);
-    std::uniform_int_distribution<int> work_dist (100, 1000);
-    std::uniform_int_distribution<int> io_num_dist (1, 5);
-    std::uniform_int_distribution<int> io_gap_dist (5, 15);
-    std::uniform_int_distribution<int> io_duration_dist (20, 50);
-
-    // TODO: change standard number of processes? is 1000 processes too much?
-    std::uint64_t last_time = 0;
-    for (int i = 0; i < PROCESSES; i++) {
-        std::uint64_t arrival = last_time + gap_dist(generator);
-        last_time = arrival;
-        int workload = work_dist(generator);
-        // generate IO times and durations
-        int io_num = io_num_dist(generator);
-        std::vector<IO> io;
-        int io_start = 0;
-        for (int i = 0; i < io_num; i++) {
-            io_start += io_gap_dist(generator);
-            int io_duration = io_duration_dist(generator);
-            io.push_back(IO{io_start, io_duration});
-        }
-        std::shared_ptr<Process> p = std::make_shared<Process>(
-            Process{io, arrival, 0, 0, -1, 0, workload, i});
-        process_list.push_back(p);
-        Event e = {EventType::ProcessArrival, arrival, i};
-        event_queue.push(e);
-    }
 }
 
 std::uint64_t getRemainingQuantum() {
@@ -146,7 +123,7 @@ void Event::runEvent() {
         case EventType::ProcessExit: {
             if (!staleExitEvent(this->pid, this->time) && processExits(this->pid)) {
                 finished_proc++;
-                if (finished_proc == PROCESSES)
+                if (static_cast<std::size_t>(finished_proc) == process_list.size())
                     endSimulation();
             }
             break;
@@ -178,4 +155,3 @@ void eventLoop() {
         next.runEvent();    
     }
 }
-

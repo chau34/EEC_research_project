@@ -1,0 +1,27 @@
+# Long hog: 8 huge processes (one per core) arrive first, then a stream of short ones.
+# Cooperative should starve the short processes until the hogs finish; preemptive should not.
+# Units are simulator ticks: TIME_QUANTUM = 10, context switch = 1, affinity penalty = 3.
+# 8 cores. Approximate CPU utilization = mean runtime / (inter arrival * 8).
+process class:
+{
+        Start time: 0
+        End time: 0
+        Inter arrival: 1
+        Batch size: 8
+        Runtime: 50000
+        Process type: HOG
+        Seed: 520239
+}
+
+process class:
+{
+        Start time: 10
+        End time: 20000
+        Inter arrival: 20
+        Runtime: [20, 80]
+        IO count: [0, 2]
+        IO gap: [5, 20]
+        IO duration: [20, 50]
+        Process type: SHORT
+        Seed: 520240
+}

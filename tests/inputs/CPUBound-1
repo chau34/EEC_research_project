@@ -1,0 +1,13 @@
+# CPU-bound: long runs, no I/O. Cooperative's best case (fewest switches).
+# Units are simulator ticks: TIME_QUANTUM = 10, context switch = 1, affinity penalty = 3.
+# 8 cores. Approximate CPU utilization = mean runtime / (inter arrival * 8).
+# Utilization ~ 1250 / (175 * 8) = 0.89
+process class:
+{
+        Start time: 0
+        End time: 175000
+        Inter arrival: 175
+        Runtime: [500, 2000]
+        Process type: CPU
+        Seed: 520230
+}

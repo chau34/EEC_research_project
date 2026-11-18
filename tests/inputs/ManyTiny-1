@@ -1,0 +1,13 @@
+# Many tiny processes: runtimes near the quantum, so switch overhead dominates.
+# Units are simulator ticks: TIME_QUANTUM = 10, context switch = 1, affinity penalty = 3.
+# 8 cores. Approximate CPU utilization = mean runtime / (inter arrival * 8).
+# Utilization ~ 10 / (2 * 8) = 0.63 (before overhead)
+process class:
+{
+        Start time: 0
+        End time: 4000
+        Inter arrival: 2
+        Runtime: [5, 15]
+        Process type: TINY
+        Seed: 520241
+}

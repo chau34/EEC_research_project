@@ -1,0 +1,26 @@
+# Mixed: CPU-bound and I/O-bound classes competing in the same window.
+# Units are simulator ticks: TIME_QUANTUM = 10, context switch = 1, affinity penalty = 3.
+# 8 cores. Approximate CPU utilization = mean runtime / (inter arrival * 8).
+# Utilization ~ (1250 / 400 + 200 / 60) / 8 = 0.81
+process class:
+{
+        Start time: 0
+        End time: 60000
+        Inter arrival: 400
+        Runtime: [500, 2000]
+        Process type: CPU
+        Seed: 520233
+}
+
+process class:
+{
+        Start time: 0
+        End time: 60000
+        Inter arrival: 60
+        Runtime: [100, 300]
+        IO count: [3, 8]
+        IO gap: [10, 40]
+        IO duration: [20, 50]
+        Process type: IO
+        Seed: 520234
+}

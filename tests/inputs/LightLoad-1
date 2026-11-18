@@ -1,0 +1,16 @@
+# Light load: sparse arrivals, cores mostly idle. Exercises C-states once wired in.
+# Units are simulator ticks: TIME_QUANTUM = 10, context switch = 1, affinity penalty = 3.
+# 8 cores. Approximate CPU utilization = mean runtime / (inter arrival * 8).
+# Utilization ~ 125 / (500 * 8) = 0.03
+process class:
+{
+        Start time: 0
+        End time: 250000
+        Inter arrival: 500
+        Runtime: [50, 200]
+        IO count: [0, 2]
+        IO gap: [20, 60]
+        IO duration: [20, 50]
+        Process type: MIXED
+        Seed: 520235
+}

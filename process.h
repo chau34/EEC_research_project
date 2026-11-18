@@ -26,9 +26,16 @@ struct Process {
     int finished;
     int remaining;
     int PID;
+    // Set by workload generator
+    int type_id;
+    int work;
+    int io_count;
+    std::uint64_t io_total; // Total time spent blocked on I/O
 };
 
 extern std::vector<std::shared_ptr<Process>> process_list;
+
+extern std::uint64_t context_switches;
 
 std::shared_ptr<Process> getProcess(int pid);
 

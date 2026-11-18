@@ -55,8 +55,6 @@ public:
 
 void startSimulation(SchedulerMode mode);
 
-void generateWorkload(int seed);
-
 void addIOEvent(int pid);
 void addExitEvent(int core, int pid);
 

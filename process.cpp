@@ -7,6 +7,7 @@
 #define CONTEXT_SWITCH_COST 1
 
 std::vector<std::shared_ptr<Process>> process_list;
+std::uint64_t context_switches = 0;
 
 // /* Used for yield in case exit event is scheduled, 
 //  * but this code is wrong since it assumes top event is process_exit.
@@ -44,6 +45,7 @@ void contextSwitchIn(int core_id, int pid) {
     std::shared_ptr<Process> process = getProcess(pid);
     core->context_switching = true;
     core->running = process;
+    context_switches++;
     event_queue.push({EventType::ContextSwitchEnd, real_time + CONTEXT_SWITCH_COST, pid});
 }
 

@@ -1,0 +1,16 @@
+# Interactive: very short bursts with long waits (user input, network).
+# Units are simulator ticks: TIME_QUANTUM = 10, context switch = 1, affinity penalty = 3.
+# 8 cores. Approximate CPU utilization = mean runtime / (inter arrival * 8).
+# Utilization ~ 50 / (10 * 8) = 0.63
+process class:
+{
+        Start time: 0
+        End time: 10000
+        Inter arrival: 10
+        Runtime: [20, 80]
+        IO count: [1, 3]
+        IO gap: [5, 20]
+        IO duration: [50, 200]
+        Process type: INTERACTIVE
+        Seed: 520232
+}

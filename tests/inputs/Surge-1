@@ -1,0 +1,36 @@
+# Surge: light baseline with two dense spikes (modeled on the cloud sim's BigSmall-1).
+# Units are simulator ticks: TIME_QUANTUM = 10, context switch = 1, affinity penalty = 3.
+# 8 cores. Approximate CPU utilization = mean runtime / (inter arrival * 8).
+# Baseline utilization ~ 0.05; each spike queues ~300k ticks of work in a short window.
+process class:
+{
+        Start time: 0
+        End time: 300000
+        Inter arrival: 300
+        Runtime: [50, 200]
+        IO count: [0, 2]
+        IO gap: [20, 60]
+        IO duration: [20, 50]
+        Process type: BASELINE
+        Seed: 520236
+}
+
+process class:
+{
+        Start time: 100000
+        End time: 103000
+        Inter arrival: 3
+        Runtime: [100, 500]
+        Process type: SPIKE
+        Seed: 520237
+}
+
+process class:
+{
+        Start time: 200000
+        End time: 202000
+        Inter arrival: 2
+        Runtime: [100, 500]
+        Process type: SPIKE
+        Seed: 520238
+}

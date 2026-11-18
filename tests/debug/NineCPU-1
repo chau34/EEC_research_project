@@ -1,0 +1,15 @@
+# Nine identical processes at t=0 on eight cores.
+# Cooperative: eight exit at 104, the ninth starts on the first freed core and
+# exits at 104 + 1 + 3 + 100 = 208.
+# Preemptive: no hand-traced answer; checked by invariants only.
+# expect: modes=1 sorted_completions=104,104,104,104,104,104,104,104,208
+process class:
+{
+        Start time: 0
+        End time: 0
+        Inter arrival: 1
+        Batch size: 9
+        Runtime: 100
+        Process type: CPU
+        Seed: 1
+}
