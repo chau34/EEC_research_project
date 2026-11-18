@@ -14,6 +14,14 @@
 #include <memory>
 #include "process.h"
 
+enum class SchedulerMode {
+    Preemptive,
+    Cooperative,
+    Hybrid
+};
+
+extern SchedulerMode sched_mode;
+
 /* DO NOT change the order of the event types */
 enum class EventType {
     ProcessExit,
@@ -44,7 +52,7 @@ public:
     }
 };
 
-void startSimulation();
+void startSimulation(SchedulerMode mode);
 
 void generateWorkload(int seed);
 

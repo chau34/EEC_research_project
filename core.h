@@ -15,7 +15,6 @@
 #include "process.h"
 
 #define NUM_CORES 8
-#define FLUSH_QUANTUM 50
 
 // TODO: how many c_states do we want, I think 5 is sufficient
 enum C_STATE {

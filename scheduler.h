@@ -12,8 +12,7 @@
 #include <queue>
 #include <memory>
 #include <array>
-#include "process.h"
-#include "core.h"
+#include "event.h"
 
 extern std::queue<int> ready_queue;
 

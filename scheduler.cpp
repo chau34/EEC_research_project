@@ -1,6 +1,5 @@
 #include "scheduler.h"
 #include "process.h"
-#include "event.h"
 #include "core.h"
 #include <iostream>
 
@@ -13,13 +12,26 @@ void timerInterrupt() {
 }
 
 void schedule() {
-    if (!ready_queue.empty()) {
-        int pid = ready_queue.front();
-        ready_queue.pop();
-        if (cores[0]->running)
-            ready_queue.push(cores[0]->running->PID);
-        contextSwitchOut(0);
-        contextSwitchIn(0, pid);    
+    switch(sched_mode) {
+        case SchedulerMode::Preemptive: {
+            if (!ready_queue.empty()) {
+                int pid = ready_queue.front();
+                ready_queue.pop();
+                if (cores[0]->running)
+                    ready_queue.push(cores[0]->running->PID);
+                contextSwitchOut(0);
+                contextSwitchIn(0, pid);    
+            }
+            return;
+        }
+        case SchedulerMode::Cooperative: {
+            // TODO: loop through all cores and assign process, if any
+            return;
+        }
+        case SchedulerMode::Hybrid: {
+            // TODO
+            return;
+        }
     }
 }
 

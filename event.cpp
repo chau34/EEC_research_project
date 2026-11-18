@@ -4,19 +4,25 @@
 #include "core.h"
 #include <random>
 #include <stdio.h>
+#include <climits>
 
 #define PROCESSES 1000
 
 int finished_proc = 0;
 
+SchedulerMode sched_mode;
+
 std::uint64_t real_time = 0;
 std::priority_queue<Event, std::vector<Event>, Compare> event_queue;
 
 /* Start the first timer event and run */
-void startSimulation() {
+void startSimulation(SchedulerMode mode) {
+    sched_mode = mode;
     initCores();
-    Event e = {EventType::Timer, real_time = 10};
-    event_queue.push(e);
+    if (mode == SchedulerMode::Preemptive) {
+        Event e = {EventType::Timer, real_time = 10};
+        event_queue.push(e);
+    }
     eventLoop();
 }
 
@@ -59,6 +65,8 @@ void generateWorkload(int seed) {
 }
 
 int getRemainingQuantum() {
+    if (sched_mode == SchedulerMode::Cooperative)
+        return UINT_MAX;
     return TIME_QUANTUM - (real_time % TIME_QUANTUM);
 }
 
@@ -108,15 +116,6 @@ bool staleExitEvent(int pid, int time) {
     return stale;
 }
 
-void cache_update() {
-    for (int i = 0; i < NUM_CORES; i++) {
-        if (real_time - cores[i]->last_cache_flush >= FLUSH_QUANTUM) {
-            cores[i]->last_cache_flush = real_time;
-            // TODO: energy used by flushing?
-        }
-    }
-}
-
 void Event::runEvent() {
     switch (this->type) {
         case EventType::Timer: {
@@ -138,8 +137,6 @@ void Event::runEvent() {
                     addExitEvent(i, cores[i]->running->PID);
                 }
             }
-            // flush caches to simulate eviction/full cache
-            cache_update();
             break;
         }
         case EventType::ProcessArrival: {
