@@ -14,7 +14,7 @@ void blockIO(int pid) {
     std::shared_ptr<Process> p = getProcess(pid);
     // stale IO event
     if (p->last_core < 0 || cores[p->last_core]->running != p
-    || cores[p->last_core]->context_switching)
+    || cores[p->last_core]->context_switching || cores[p->last_core]->timer_interrupted)
         return;
     calculateTimeSpent(p);
     Event e2 = {EventType::IOEnd, real_time + p->io.front().duration, pid};
@@ -28,7 +28,7 @@ void blockIO(int pid) {
 void C3CacheFlush(std::shared_ptr<Core> core) {
     std::uint64_t idle = real_time - core->last_idle;
     if (idle >= C3_TARGET_RESIDENCY_US) {
-        std::uint64_t new_flush = real_time - C3_TARGET_RESIDENCY_US;
+        std::uint64_t new_flush = core->last_idle + C3_TARGET_RESIDENCY_US;
         if (core->last_cache_flush < new_flush)
             core->last_cache_flush = new_flush;
     }
@@ -52,8 +52,15 @@ void contextSwitchIn(int core_id, int pid) {
     core->context_switching = true;
     core->running = process;
     context_switches++;
+
+    // TODO: realistic core affinity penalty?
+    std::uint64_t cache_latency = 0;
+    if ((process->last_core != core->core_num) || core->last_pid != pid
+    || (core->last_cache_flush >= process->last_run))
+        cache_latency = CORE_AFFINITY_PENALTY;
+    
     event_queue.push({EventType::ContextSwitchEnd, 
-        real_time + stateWakeLatency(core) + CONTEXT_SWITCH_US, pid});
+        real_time + stateWakeLatency(core) + CONTEXT_SWITCH_US + cache_latency, pid});
 }
 
 void contextSwitchFinish(int pid) {
@@ -63,10 +70,6 @@ void contextSwitchFinish(int pid) {
     for (int i = 0; i < NUM_CORES; i++) {
         std::shared_ptr<Core> core = cores[i];
         if (core->running && core->running->PID == pid && core->context_switching) {
-            // core affinity penalty
-            if ((process->last_core != core->core_num) || core->last_pid != pid
-            || (core->last_cache_flush >= process->last_run))
-                process->remaining += CORE_AFFINITY_PENALTY;
 
             core->context_switching = false;
             core->running->last_core = core->core_num;
