@@ -2,7 +2,7 @@
 # Cooperative: eight exit at 104, the ninth starts on the first freed core and
 # exits at 104 + 1 + 3 + 100 = 208.
 # Preemptive: no hand-traced answer; checked by invariants only.
-# expect: modes=1 sorted_completions=104,104,104,104,104,104,104,104,208
+# expect: modes=1 sorted_completions=100004,100004,100004,100004,100004,100004,100004,100004,200008
 process class:
 {
         Start time: 0

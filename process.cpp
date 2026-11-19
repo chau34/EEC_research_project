@@ -2,23 +2,12 @@
 #include "event.h"
 #include "scheduler.h"
 #include "core.h"
+#include "energy_params.h"
 
 #define CORE_AFFINITY_PENALTY 3
-#define CONTEXT_SWITCH_COST 1
 
 std::vector<std::shared_ptr<Process>> process_list;
 std::uint64_t context_switches = 0;
-
-// /* Used for yield in case exit event is scheduled, 
-//  * but this code is wrong since it assumes top event is process_exit.
-//  * Either way, won't need this code if time remaining takes into consideration
-//  * yield event when context switch in
-//  */
-// void removeExitEvent() {
-//     Event e = event_queue.top();
-//     if (e.type == EventType::ProcessExit)
-//         event_queue.pop();
-// }
 
 /* Used when IO event occurs */
 void blockIO(int pid) {
@@ -35,9 +24,12 @@ void blockIO(int pid) {
     schedule();
 }
 
-void yield(int pid) {
-    // TODO: calculate time spent of current process because yield before finishing time quantum
-    
+std::uint64_t stateWakeLatency(std::shared_ptr<Core> core) {
+    std::uint64_t idle = real_time - core->last_idle;
+    // have been active, ignore wake latency
+    if (idle == 0)
+        return 0;
+    return idle >= C6_TARGET_RESIDENCY_US ? C6_EXIT_US : C1_EXIT_US;
 }
 
 void contextSwitchIn(int core_id, int pid) {
@@ -46,7 +38,8 @@ void contextSwitchIn(int core_id, int pid) {
     core->context_switching = true;
     core->running = process;
     context_switches++;
-    event_queue.push({EventType::ContextSwitchEnd, real_time + CONTEXT_SWITCH_COST, pid});
+    event_queue.push({EventType::ContextSwitchEnd, 
+        real_time + stateWakeLatency(core) + CONTEXT_SWITCH_US, pid});
 }
 
 void contextSwitchFinish(int pid) {
@@ -70,8 +63,6 @@ void contextSwitchFinish(int pid) {
             addIOEvent(pid);
             // generate exit event if current process will finish before time quantum
             addExitEvent(core->core_num, pid);
-            // TODO: energy count
-            
             return;
         }
     } 
@@ -81,7 +72,7 @@ void contextSwitchOut(int core_id) {
     cores[core_id]->running = NULL;
     // this is safety net for failed context switch
     cores[core_id]->context_switching = false;
-    // TODO: energy count
+    cores[core_id]->last_idle = real_time;
 }
 
 

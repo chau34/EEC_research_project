@@ -10,6 +10,7 @@
 #include <random>
 #include <set>
 #include <sstream>
+#include "energy_params.h"
 
 static unsigned report_seed_offset = 0;
 static bool report_dump = false;
@@ -204,9 +205,9 @@ void generateWorkload(const std::vector<ProcessClass>& classes, unsigned seed_of
                 std::uint64_t io_start = 0;
                 int io_num = io_count_dist(gen);
                 for (int k = 0; k < io_num; k++) {
-                    io_start += static_cast<std::uint64_t>(io_gap_dist(gen));
-                    std::uint64_t duration = static_cast<std::uint64_t>(io_dur_dist(gen));
-                    if (io_start >= static_cast<std::uint64_t>(work))
+                    io_start += static_cast<std::uint64_t>(io_gap_dist(gen)) * TICK_US;
+                    std::uint64_t duration = static_cast<std::uint64_t>(io_dur_dist(gen)) * TICK_US;
+                    if (io_start >= static_cast<std::uint64_t>(work * TICK_US))
                         break;
                     io.push_back(IO{io_start, duration});
                     io_total += duration;
@@ -216,17 +217,17 @@ void generateWorkload(const std::vector<ProcessClass>& classes, unsigned seed_of
                 int pid = static_cast<int>(process_list.size());
                 auto p = std::make_shared<Process>();
                 p->io = io;
-                p->arrival = t;
+                p->arrival = t * TICK_US;
                 p->last_core = -1;
-                p->remaining = work; // shrinks as process runs
+                p->remaining = work * TICK_US; // shrinks as process runs
                 p->PID = pid;
                 p->type_id = type_id;
-                p->work = work; // original runtime (distinct from remaining)
+                p->work = work * TICK_US; // original runtime (distinct from remaining)
                 p->io_count = static_cast<int>(io.size());
                 p->io_total = io_total;
                 process_list.push_back(p);
 
-                event_queue.push(Event{EventType::ProcessArrival, t, pid});
+                event_queue.push(Event{EventType::ProcessArrival, t * TICK_US, pid});
             }
             // At least 1 tick between arrivals
             std::uint64_t gap = static_cast<std::uint64_t>(gap_dist(gen));
@@ -286,7 +287,8 @@ void printReport(bool success) {
            modeName(sched_mode), report_seed_offset, success ? "ok" : "incomplete",
            (unsigned long long)real_time, (unsigned long long)context_switches);
     all.print("");
-    // TODO (Jonah): append energy=<total> here once energy is calculated
+    // print total energy in Joules
+    printf(" energy=%.6f\n", total_energy_nj / 1e9);
     printf("\n");
 
     std::map<std::string, Totals> merged;

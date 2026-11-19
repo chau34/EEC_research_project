@@ -1,22 +1,19 @@
 Simulator to compare energy efficiency of preemptive and cooperative schedulers.
 
+<br>How to run:
+  - make test: runs all the test cases
+  - make run [input file] [scheduler mode] [seed offset] [--dump]
+      - seed and --dump is optional
+
 <br>Things we are working on:
-  - Jonah: energy calculations
-  - Caleb: testing interface
-  - Chau: time latency of context switch
+  - Jonah: cache
+  - Caleb: idle c state energy heuristics
+  - Chau: integrating energy and time latency of changing states
 
-<br>Things implemented but can be improved upon: 
+<br>Features of simulator:
   - Multi-core implementation
-  - C states and P states (need time latency and finish events...)
-  - core affinity/caches
+  - C states and P states
+  - Core affinity/caches
   - I/O interface
-  - Separation between scheduling mode (can now have args with make run)
-
-<br>Things to start:
+  - Different scheduling modes
   - Energy calculations for context switching, running the scheduler, changing states, etc.
-  - Context switching timing delay (currently takes no time to context switch)
-  - Test cases:
-      - add make test to Makefile
-      - better process implementation for various types of processes in a system (eg. CPU-bound or I/O bound processes, different kinds of workload)
-  - Fancy: thermal design power?
-  - Energy consumption of storage devices
