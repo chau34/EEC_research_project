@@ -26,10 +26,11 @@ void blockIO(int pid) {
 
 std::uint64_t stateWakeLatency(std::shared_ptr<Core> core) {
     std::uint64_t idle = real_time - core->last_idle;
-    // have been active, ignore wake latency
-    if (idle == 0)
-        return 0;
-    return idle >= C6_TARGET_RESIDENCY_US ? C6_EXIT_US : C1_EXIT_US;
+    if (idle >= C6_TARGET_RESIDENCY_US)
+        return C6_EXIT_US;
+    else if (idle >= C1_TARGET_RESIDENCY_US)
+        return C1_EXIT_US;
+    return 0;
 }
 
 void contextSwitchIn(int core_id, int pid) {
