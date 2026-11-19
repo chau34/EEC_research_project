@@ -5,8 +5,12 @@
 #include "workload.h"
 #include <stdio.h>
 #include <climits>
+#include "energy_params.h"
 
 int finished_proc = 0;
+
+std::uint64_t last_energy_time = 0;
+std::uint64_t total_energy_nj = 0;
 
 SchedulerMode sched_mode;
 
@@ -18,7 +22,7 @@ void startSimulation(SchedulerMode mode) {
     sched_mode = mode;
     initCores();
     if (mode == SchedulerMode::Preemptive) {
-        Event e = {EventType::Timer, real_time = 10};
+        Event e = {EventType::Timer, real_time = TIME_QUANTUM};
         event_queue.push(e);
     }
 
@@ -92,28 +96,37 @@ bool staleExitEvent(int pid, std::uint64_t time) {
     return true;
 }
 
+void timerInterruptFinish() {
+    timerInterrupt();
+    // check all cores to add exit events
+    std::shared_ptr<Process> prev[NUM_CORES];
+    for (int i = 0; i < NUM_CORES; i++) {
+        prev[i] = cores[i]->running;
+    }
+    timerInterrupt();
+    // only add exit/IO event if running same process as before
+    for (int i = 0; i < NUM_CORES; i++) {
+        cores[i]->timer_interrupted = false;
+        if (prev[i] && (prev[i] == cores[i]->running) && !cores[i]->context_switching) {
+            cores[i]->running->last_run = real_time;
+            addIOEvent(cores[i]->running->PID);
+            addExitEvent(i, cores[i]->running->PID);
+        }
+    }
+}
+
 void Event::runEvent() {
     switch (this->type) {
         case EventType::Timer: {
-            // check all cores to add exit events
-            std::shared_ptr<Process> prev[NUM_CORES];
             for (int i = 0; i < NUM_CORES; i++) {
-                prev[i] = cores[i]->running;
-                if (!cores[i]->context_switching)
+                if (cores[i]->running && !cores[i]->context_switching) {
                     calculateTimeSpent(cores[i]->running);
-            }
-            timerInterrupt();
-            // generate the next timer event
-            Event e = {EventType::Timer, real_time + TIME_QUANTUM};
-            event_queue.push(e);
-            // only add exit/IO event if running same process as before
-            for (int i = 0; i < NUM_CORES; i++) {
-                if (prev[i] && (prev[i] == cores[i]->running) && !cores[i]->context_switching) {
-                    cores[i]->running->last_run = real_time;
-                    addIOEvent(cores[i]->running->PID);
-                    addExitEvent(i, cores[i]->running->PID);
+                    cores[i]->timer_interrupted = true;
                 }
             }
+            // push timer interrupt latency event and next timer interrupt
+            event_queue.push({EventType::TimerEnd, real_time + TIMER_INTERRUPT_US});
+            event_queue.push({EventType::Timer, real_time + TIME_QUANTUM});
             break;
         }
         case EventType::ProcessArrival: {
@@ -128,7 +141,6 @@ void Event::runEvent() {
             }
             break;
         }
-        // TODO
         case EventType::IOStart: {
             blockIO(this->pid);
             break;
@@ -141,7 +153,26 @@ void Event::runEvent() {
             contextSwitchFinish(this->pid);
             break;
         }
+        case EventType::TimerEnd: {
+            timerInterruptFinish();
+            break;
+        }
     }   
+}
+
+void add_energy(uint64_t current_time) {
+    // count numbers of active cores
+    int active = 0;
+    for (int i = 0; i < NUM_CORES; i++) {
+        if (cores[i]->running)
+            active++;
+    }
+
+    // power model from energy_params.h
+    std::uint64_t mw = (active == 0) ? SHARED_IDLE_MW : SHARED_ACTIVE_MW + active * P_ACTIVE_MW;
+
+    total_energy_nj += mw * (current_time - last_energy_time);
+    last_energy_time = current_time;
 }
 
 /* Event loop that runs timer events and process arrivals/exits
@@ -151,6 +182,7 @@ void eventLoop() {
     while(!event_queue.empty()) {
         Event next = event_queue.top();
         real_time = next.time;
+        add_energy(real_time);
         event_queue.pop();
         next.runEvent();    
     }
