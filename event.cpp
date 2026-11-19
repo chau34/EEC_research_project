@@ -96,28 +96,37 @@ bool staleExitEvent(int pid, std::uint64_t time) {
     return true;
 }
 
+void timerInterruptFinish() {
+    timerInterrupt();
+    // check all cores to add exit events
+    std::shared_ptr<Process> prev[NUM_CORES];
+    for (int i = 0; i < NUM_CORES; i++) {
+        prev[i] = cores[i]->running;
+    }
+    timerInterrupt();
+    // only add exit/IO event if running same process as before
+    for (int i = 0; i < NUM_CORES; i++) {
+        cores[i]->timer_interrupted = false;
+        if (prev[i] && (prev[i] == cores[i]->running) && !cores[i]->context_switching) {
+            cores[i]->running->last_run = real_time;
+            addIOEvent(cores[i]->running->PID);
+            addExitEvent(i, cores[i]->running->PID);
+        }
+    }
+}
+
 void Event::runEvent() {
     switch (this->type) {
         case EventType::Timer: {
-            // check all cores to add exit events
-            std::shared_ptr<Process> prev[NUM_CORES];
             for (int i = 0; i < NUM_CORES; i++) {
-                prev[i] = cores[i]->running;
-                if (!cores[i]->context_switching)
+                if (cores[i]->running && !cores[i]->context_switching) {
                     calculateTimeSpent(cores[i]->running);
-            }
-            timerInterrupt();
-            // generate the next timer event
-            Event e = {EventType::Timer, real_time + TIME_QUANTUM};
-            event_queue.push(e);
-            // only add exit/IO event if running same process as before
-            for (int i = 0; i < NUM_CORES; i++) {
-                if (prev[i] && (prev[i] == cores[i]->running) && !cores[i]->context_switching) {
-                    cores[i]->running->last_run = real_time;
-                    addIOEvent(cores[i]->running->PID);
-                    addExitEvent(i, cores[i]->running->PID);
+                    cores[i]->timer_interrupted = true;
                 }
             }
+            // push timer interrupt latency event and next timer interrupt
+            event_queue.push({EventType::TimerEnd, real_time + TIMER_INTERRUPT_US});
+            event_queue.push({EventType::Timer, real_time + TIME_QUANTUM});
             break;
         }
         case EventType::ProcessArrival: {
@@ -142,6 +151,10 @@ void Event::runEvent() {
         }
         case EventType::ContextSwitchEnd: {
             contextSwitchFinish(this->pid);
+            break;
+        }
+        case EventType::TimerEnd: {
+            timerInterruptFinish();
             break;
         }
     }   

@@ -1,6 +1,7 @@
 # One process, no I/O. Hand-traced against the current code:
 #   arrives 1, context switch ends 2 (+1), cold-start penalty (+3), 100 work -> exits 105
-# expect: modes=0,1 sorted_completions=101096
+# expect: modes=0 sorted_completions=101126
+# expect: modes=1 sorted_completions=101096
 process class:
 {
         Start time: 1
