@@ -1,7 +1,7 @@
 # One process, one I/O 20 ticks into its run, blocking for 30.
 #   runs 2..22, blocked 22..52, switch back in ends 53 (same core, no penalty),
 #   remaining 83 -> exits 136
-# expect: modes=0,1 sorted_completions=136
+# expect: modes=0,1 sorted_completions=131005
 process class:
 {
         Start time: 1

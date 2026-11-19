@@ -18,7 +18,7 @@ void startSimulation(SchedulerMode mode) {
     sched_mode = mode;
     initCores();
     if (mode == SchedulerMode::Preemptive) {
-        Event e = {EventType::Timer, real_time = 10};
+        Event e = {EventType::Timer, real_time = TIME_QUANTUM};
         event_queue.push(e);
     }
 
