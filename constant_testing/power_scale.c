@@ -48,37 +48,34 @@ static void stop_workers(pid_t *pids, int count) {
 }
 
 /* Returns population covariance for power values */
-double cov(double* power_values) {
-    double x_mean;
-    double y_mean;
-    double x = 0;
-    double y = 0;
-    for (int i = 0; i <= NUM_CPUS; i++) {
-        x += power_values[i];
-        y += i;
+double cov(double *x, double *y, int n) {
+    double x_mean = 0;
+    double y_mean = 0;
+    for (int i = 0; i < n; i++) {
+        x_mean += x[i];
+        y_mean += y[i];
     }
-    x_mean = x / (NUM_CPUS + 1);
-    y_mean = y / (NUM_CPUS + 1);
-
+    x_mean /= n;
+    y_mean /= n;
     double sum = 0;
-    for (int i = 0; i <= NUM_CPUS; i++) {
-        sum += (power_values[i] - x_mean) * (i - y_mean);
+    for (int i = 0; i < n; i++) {
+        sum += (x[i] - x_mean) * (y[i] - y_mean);
     }
-    return sum / (NUM_CPUS + 1);
+    return sum / n;
 }
 
-double variance(int k) {
-    double average = 0;
-    for (int i = 0; i < k; i++) {
-        average += i;
+double variance(double *x, int n) {
+    double mean = 0;
+    for (int i = 0; i < n; i++) {
+        mean += x[i];
     }
-    average /= k;
+    mean /= n;
     double sum = 0;
-    for (int i = 0; i < k; i++) {
-        double value = i - average;
-        sum += value * value;
+    for (int i = 0; i < n; i++) {
+        double diff = x[i] - mean;
+        sum += diff * diff;
     }
-    return sum / k;
+    return sum / n;
 }
 
 int main(int argc, char **argv) {
@@ -93,8 +90,29 @@ int main(int argc, char **argv) {
     double secs = atof(argv[2]);
 
     int cpus[NUM_CPUS];
-    for (int i = 0; i < NUM_CPUS; i++) {
-        cpus[i] = i + 1;
+    int found = 0;
+    int core_seen[NUM_CPUS];
+    for (int c = 0; c < 256 && found < NUM_CPUS; c++) {
+        char path[128];
+        char b[32];
+        snprintf(path, sizeof path, "/sys/devices/system/cpu/cpu%d/topology/physical_package_id", c);
+        if (read_into_buf(path, b, sizeof b) || atoi(b) != 0)
+            continue;
+        snprintf(path, sizeof path, "/sys/devices/system/cpu/cpu%d/topology/core_id", c);
+        if (read_into_buf(path, b, sizeof b))
+            continue;
+        int core = atoi(b), dup = 0;
+        for (int i = 0; i < found; i++)
+            if (core_seen[i] == core)
+                dup = 1;
+        if (dup)
+            continue;
+        core_seen[found] = core;
+        cpus[found++] = c;
+    }
+    if (found < NUM_CPUS) {
+        fprintf(stderr, "found only %d cores on package 0\n", found);
+        return 1;
     }
 
     Zone pkg;
@@ -157,26 +175,27 @@ int main(int argc, char **argv) {
         sleep(2);
     }
 
-    double cov_value = cov(power_values);
-    double variance_value = variance(NUM_CPUS + 1);
-    double p_active = cov_value / variance_value;
-    double p_mean = 0;
-    double k_mean = 0;
-    for (int i = 0; i < NUM_CPUS + 1; i++) {
-        p_mean += power_values[i];
-        k_mean += i;
-    }
-    p_mean /= NUM_CPUS + 1;
-    k_mean /= NUM_CPUS + 1;
-    double p_shared = p_mean - (p_active * k_mean);
-    
-    printf("cov: %.0f\n", cov_value);
-    printf("variance: %.0f\n", variance_value);
-    printf("mean power: %.0f\n", p_mean);
-    printf("mean k: %.0f\n", k_mean);
+    // Fall off after 14
+    int n = 14;
+    double cpu_counts[NUM_CPUS];
 
+    double k_mean = 0;
+    double p_mean = 0;
+    for (int i = 0; i < n; i++) {
+        cpu_counts[i] = i + 1;
+        k_mean += cpu_counts[i];
+        p_mean += power_values[i + 1];
+    }
+    k_mean /= n;
+    p_mean /= n;
+    double p_active = cov(cpu_counts, power_values + 1, n) / variance(cpu_counts, n);
+    double p_shared = p_mean - p_active * k_mean;
+
+    printf("mean k: %.1f\n", k_mean);
+    printf("mean power: %.0f\n", p_mean);
     printf("P_active = %.0f\n", p_active);
     printf("P_shared = %.0f\n", p_shared);
     printf("Shared Idle = %.0f\n", power_values[0]);
+    printf("Intercept = %.0f mW\n", p_shared - power_values[0]);
     return 0;
 }
