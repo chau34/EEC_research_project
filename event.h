@@ -14,6 +14,8 @@
 #include <memory>
 #include "process.h"
 
+extern std::uint64_t total_energy_nj;
+
 enum class SchedulerMode {
     Preemptive,
     Cooperative,

@@ -287,7 +287,8 @@ void printReport(bool success) {
            modeName(sched_mode), report_seed_offset, success ? "ok" : "incomplete",
            (unsigned long long)real_time, (unsigned long long)context_switches);
     all.print("");
-    // TODO (Jonah): append energy=<total> here once energy is calculated
+    // print total energy in Joules
+    printf(" energy=%.6f\n", total_energy_nj / 1e9);
     printf("\n");
 
     std::map<std::string, Totals> merged;

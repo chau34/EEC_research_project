@@ -6,13 +6,14 @@ std::shared_ptr<Core> cores[NUM_CORES];
 void initCores() {
     for (int i = 0; i < NUM_CORES; i++)
         cores[i] = std::make_shared<Core>(
-            Core{i, 0, C0, P0, 0, 0, 0, NULL, 0, false, false});
+            Core{i, 0, C0, P0, 0, 0, 0, NULL, 0, false, false, 0});
 }
 
 void calculateEnergy() {
-    
+
 }
 
+/* Effectively dead, we are not using these functions */
 void changePState(int core, P_STATE p_state) {
     cores[core]->p_state = p_state;
     // TODO: energy

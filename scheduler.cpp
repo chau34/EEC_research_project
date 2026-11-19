@@ -22,6 +22,7 @@ void timerInterrupt() {
     schedule();
 }
 
+/* Try to put waiting tasks into idle cores, if any */
 void schedule() {
     switch(sched_mode) {
         case SchedulerMode::Preemptive:

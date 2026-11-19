@@ -45,6 +45,7 @@ struct Core {
     int last_pid;
     bool context_switching;
     bool changing_c_state;
+    std::uint64_t last_idle;       // keeps track of last time idle, corresponds with c-state step down
 };
 
 extern std::shared_ptr<Core> cores[NUM_CORES];
