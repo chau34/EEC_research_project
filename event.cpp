@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <climits>
 
-int finished_proc = 0;
+std::size_t finished_proc = 0;
 
 SchedulerMode sched_mode;
 
@@ -29,7 +29,7 @@ void startSimulation(SchedulerMode mode) {
     }
     eventLoop();
 
-    fprintf(stderr, "error: simulation ended with %d of %zu processes finished\n",
+    fprintf(stderr, "error: simulation ended with %zu of %zu processes finished\n",
             finished_proc, process_list.size());
     printReport(false);
     exit(1);
@@ -123,7 +123,7 @@ void Event::runEvent() {
         case EventType::ProcessExit: {
             if (!staleExitEvent(this->pid, this->time) && processExits(this->pid)) {
                 finished_proc++;
-                if (static_cast<std::size_t>(finished_proc) == process_list.size())
+                if (finished_proc == process_list.size())
                     endSimulation();
             }
             break;
