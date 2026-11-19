@@ -11,40 +11,51 @@
  */
 
 
-/* Microseconds per simulator tick, sourced from lab machine config_hz */
-const uint64_t TICK_US = 1000;
+/* Microseconds per simulator tick, sourced from lab machine config_hz, scaled down for practical use */
+const uint64_t TICK_US = 1;
 
 /*
  *  Power Calculations:
  *  P(k) = SHARED + k * P_ACTIVE, k = Number of Active Cores
  *  A sweep of the # of busy cores was run to find the average value
- *  P_active = Cov(k, P) / Var(k) = 87584 / 24 = 3649 mW
- *  P_shared = mean(P) - P_active * mean(k) = 68654 - (3649 * 8) = 39459
+ *  P_active = Cov(k, P) / Var(k) = 7340 mW
+ *  P_shared = mean(P) - P_active * mean(k) = 27541
  */
 
 /* Power is read in milliwatts (mW) */
 
 /* Active power of one core running as normal */
-const uint64_t P_ACTIVE_MW = 3649;
+const uint64_t P_ACTIVE_MW = 8310; // 7340 (Power added per core) + C1_IDLE_POWER_MW
 
 /* Non-core power used */
-const uint64_t SHARED_ACTIVE_MW = 39459;
+const uint64_t SHARED_ACTIVE_MW = 27541; // Interecpt of active - 16 * C1_IDLE_POWER_MW
 
 /* Package power of cores in idle, k = 0 */
-const uint64_t SHARED_IDLE_MW = 41403;
+const uint64_t SHARED_IDLE_MW = 27459; // Shared Idle - 16 * C1_IDLE_POWER_MW
 
-/* C1 idle state is technically C1E */
-const uint64_t C1_IDLE_POWER_MW = 0;
+/* 
+ *  C1 idle state is technically C1E
+ *  idle power sourced from academic paper
+ */
+const uint64_t C1_IDLE_POWER_MW = 880;
 const uint64_t C1_EXIT_US = 10;
 const uint64_t C1_TARGET_RESIDENCY_US = 20;
 
-/* TODO: Caleb please put real numbers here */
-const uint64_t C3_IDLE_POWER_MW = 0;
-const uint64_t C3_EXIT_US = 20;
-const uint64_t C3_TARGET_RESIDENCY_US = 50;
+/* 
+ *  C3 derived from C1 and C6
+ *  US is derived logarithmically due to the exponential different in times
+ *  490 is the midpoint between C1 power and C6 power
+ *  C3 was not measured in academic paper
+ */
+const uint64_t C3_IDLE_POWER_MW = 490;
+const uint64_t C3_EXIT_US = 30;
+const uint64_t C3_TARGET_RESIDENCY_US = 74;
 
-/* C6 Found from intels table detailing heuristics */
-const uint64_t C6_IDLE_POWER_MW = 0;
+/* 
+ *  C6 Found from intels table detailing heuristics 
+ *  idle power sourced from academic paper
+ */
+const uint64_t C6_IDLE_POWER_MW = 100;
 const uint64_t C6_EXIT_US = 92;
 const uint64_t C6_TARGET_RESIDENCY_US = 276;
 
