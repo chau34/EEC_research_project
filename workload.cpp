@@ -219,10 +219,10 @@ void generateWorkload(const std::vector<ProcessClass>& classes, unsigned seed_of
                 p->io = io;
                 p->arrival = t * TICK_US;
                 p->last_core = -1;
-                p->remaining = work * TICK_US;
+                p->remaining = work * TICK_US; // shrinks as process runs
                 p->PID = pid;
                 p->type_id = type_id;
-                p->work = work * TICK_US;
+                p->work = work * TICK_US; // original runtime (distinct from remaining)
                 p->io_count = static_cast<int>(io.size());
                 p->io_total = io_total;
                 process_list.push_back(p);
