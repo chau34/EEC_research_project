@@ -24,10 +24,22 @@ void blockIO(int pid) {
     schedule();
 }
 
+/* Flush the cache at C3 */
+void C3CacheFlush(std::shared_ptr<Core> core) {
+    std::uint64_t idle = real_time - core->last_idle;
+    if (idle >= C3_TARGET_RESIDENCY_US) {
+        std::uint64_t new_flush = real_time - C3_TARGET_RESIDENCY_US;
+        if (core->last_cache_flush < new_flush)
+            core->last_cache_flush = new_flush;
+    }
+}
+
 std::uint64_t stateWakeLatency(std::shared_ptr<Core> core) {
     std::uint64_t idle = real_time - core->last_idle;
     if (idle >= C6_TARGET_RESIDENCY_US)
         return C6_EXIT_US;
+    else if (idle >= C3_TARGET_RESIDENCY_US)
+        return C3_EXIT_US;
     else if (idle >= C1_TARGET_RESIDENCY_US)
         return C1_EXIT_US;
     return 0;
@@ -35,6 +47,7 @@ std::uint64_t stateWakeLatency(std::shared_ptr<Core> core) {
 
 void contextSwitchIn(int core_id, int pid) {
     std::shared_ptr<Core> core = cores[core_id];
+    C3CacheFlush(core);
     std::shared_ptr<Process> process = getProcess(pid);
     core->context_switching = true;
     core->running = process;

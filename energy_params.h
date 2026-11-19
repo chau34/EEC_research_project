@@ -38,6 +38,11 @@ const uint64_t C1_IDLE_POWER_MW = 0;
 const uint64_t C1_EXIT_US = 10;
 const uint64_t C1_TARGET_RESIDENCY_US = 20;
 
+/* TODO: Caleb please put real numbers here */
+const uint64_t C3_IDLE_POWER_MW = 0;
+const uint64_t C3_EXIT_US = 20;
+const uint64_t C3_TARGET_RESIDENCY_US = 50;
+
 /* C6 Found from intels table detailing heuristics */
 const uint64_t C6_IDLE_POWER_MW = 0;
 const uint64_t C6_EXIT_US = 92;
