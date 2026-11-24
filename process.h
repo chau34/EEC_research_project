@@ -26,6 +26,11 @@ struct Process {
     int finished;
     int remaining;
     int PID;
+    int cache_hot_duration;             // time cache stays hot due to last I/O
+    std::uint64_t cache_hot_until;      // how long cache remains hot when context switched in
+    bool context_switched_hot;
+    bool context_switched_from_io;
+    int quantum_credit;
     // Set by workload generator
     int type_id;
     int work;

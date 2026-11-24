@@ -7,8 +7,8 @@ Simulator to compare energy efficiency of preemptive and cooperative schedulers.
 
 <br>Things we are working on:
   - Jonah: cache
-  - Caleb: idle c state energy heuristics
-  - Chau: integrating energy and time latency of changing states
+  - Caleb: testing/analyzing time quantum and core nums
+  - Chau: hybrid scheduler
 
 <br>Features of simulator:
   - Multi-core implementation
