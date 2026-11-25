@@ -17,7 +17,7 @@ void blockIO(int pid) {
     std::shared_ptr<Process> p = getProcess(pid);
     // stale IO event
     if (p->last_core < 0 || cores[p->last_core]->running != p
-    || cores[p->last_core]->context_switching)
+    || cores[p->last_core]->context_switching || cores[p->last_core]->timer_interrupted)
         return;
     calculateTimeSpent(p);
     Event e2 = {EventType::IOEnd, real_time + p->io.front().duration, pid};
@@ -37,12 +37,25 @@ void blockIO(int pid) {
     schedule();
 }
 
+/* Flush the cache at C3 */
+void C3CacheFlush(std::shared_ptr<Core> core) {
+    std::uint64_t idle = real_time - core->last_idle;
+    if (idle >= C3_TARGET_RESIDENCY_US) {
+        std::uint64_t new_flush = core->last_idle + C3_TARGET_RESIDENCY_US;
+        if (core->last_cache_flush < new_flush)
+            core->last_cache_flush = new_flush;
+    }
+}
+
 std::uint64_t stateWakeLatency(std::shared_ptr<Core> core) {
     std::uint64_t idle = real_time - core->last_idle;
-    // have been active, ignore wake latency
-    if (idle == 0)
-        return 0;
-    return idle >= C6_TARGET_RESIDENCY_US ? C6_EXIT_US : C1_EXIT_US;
+    if (idle >= C6_TARGET_RESIDENCY_US)
+        return C6_EXIT_US;
+    else if (idle >= C3_TARGET_RESIDENCY_US)
+        return C3_EXIT_US;
+    else if (idle >= C1_TARGET_RESIDENCY_US)
+        return C1_EXIT_US;
+    return 0;
 }
 
 // TODO: realistic core affinity penalty
@@ -59,11 +72,11 @@ std::uint64_t cacheLatency(std::shared_ptr<Core> core, std::shared_ptr<Process> 
 
 void contextSwitchIn(int core_id, int pid) {
     std::shared_ptr<Core> core = cores[core_id];
+    C3CacheFlush(core);
     std::shared_ptr<Process> process = getProcess(pid);
     core->context_switching = true;
     core->running = process;
     context_switches++;
-
     event_queue.push({EventType::ContextSwitchEnd, 
         real_time + stateWakeLatency(core) + CONTEXT_SWITCH_US + cacheLatency(core, process), pid});
 }
@@ -99,8 +112,11 @@ void contextSwitchFinish(int pid) {
 void contextSwitchOut(int core_id) {
     std::shared_ptr<Core> core = cores[core_id];
     // cache was hot, will cause extra latency when context switch in
-    if (real_time < core->running->cache_hot_until)
+    if (real_time < core->running->cache_hot_until) {
         core->running->context_switched_hot = true;
+        core->running->cache_hot_until = 0;
+    }
+        
     core->running = NULL;
     // this is safety net for failed context switch
     core->context_switching = false;
