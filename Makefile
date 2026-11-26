@@ -12,7 +12,7 @@ HDRS = event.h process.h scheduler.h core.h workload.h
 
 # Test settings, override on the command line
 # e.g. make test MODES="0 1 2" SEEDS="0 1 2"
-MODES ?= 0 1
+MODES ?= 0 1 2
 SEEDS ?= 0
 TIMEOUT ?= 60
 

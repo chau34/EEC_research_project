@@ -225,7 +225,8 @@ void generateWorkload(const std::vector<ProcessClass>& classes, unsigned seed_of
                 p->cache_hot_until = 0;
                 p->context_switched_hot = false;
                 p->context_switched_from_io = false;
-                p->quantum_credit = 0;
+                p->quantum_credit = 10;
+                p->yield_time = 0;
                 p->type_id = type_id;
                 p->work = work * TICK_US; // original runtime (distinct from remaining)
                 p->io_count = static_cast<int>(io.size());

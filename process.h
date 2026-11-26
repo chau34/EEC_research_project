@@ -11,6 +11,8 @@
 #include <memory>
 #include <cstdint>
 
+extern int CREDIT_GAIN;
+
 /* IO items for when processes will need to block for IO */
 struct IO {
     std::uint64_t start_time;
@@ -31,6 +33,7 @@ struct Process {
     bool context_switched_hot;
     bool context_switched_from_io;
     int quantum_credit;
+    std::uint64_t yield_time;
     // Set by workload generator
     int type_id;
     int work;
@@ -45,7 +48,7 @@ extern std::uint64_t context_switches;
 std::shared_ptr<Process> getProcess(int pid);
 
 void blockIO(int pid);
-void yield(int pid);
+void futureYield(int pid);
 void contextSwitchIn(int core, int pid);
 void contextSwitchOut(int core);
 

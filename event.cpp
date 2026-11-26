@@ -21,7 +21,8 @@ std::priority_queue<Event, std::vector<Event>, Compare> event_queue;
 void startSimulation(SchedulerMode mode) {
     sched_mode = mode;
     initCores();
-    if (mode == SchedulerMode::Preemptive) {
+    // ignore timer interrupts for cooperative mode
+    if (mode != SchedulerMode::Cooperative) {
         Event e = {EventType::Timer, real_time = TIME_QUANTUM};
         event_queue.push(e);
     }
@@ -49,6 +50,14 @@ std::uint64_t getRemainingQuantum() {
     if (sched_mode == SchedulerMode::Cooperative)
         return UINT_MAX;
     return TIME_QUANTUM - (real_time % TIME_QUANTUM);
+}
+
+void addYieldEvent(int pid, int duration) {
+    std::shared_ptr<Process> p = getProcess(pid);
+    p->yield_time = real_time + duration;
+    Event e = {EventType::ProcessYield, 
+        real_time + duration, pid};
+    event_queue.push(e);
 }
 
 /* Calculate whether process exit event should be added
@@ -85,19 +94,19 @@ void calculateTimeSpent(std::shared_ptr<Process> p) {
 }
 
 bool staleExitEvent(int pid, std::uint64_t time) {
-    // check which core is running this event and whether it's stale
-    for (int i = 0; i < NUM_CORES; i++) {
-        std::shared_ptr<Process> p = cores[i]->running;
-        if (p && p->PID == pid && p->last_run + p->remaining == time
-        && !cores[i]->context_switching) {
-            return false;
-        }
-    }
-    return true;
+    std::shared_ptr<Process> p = getProcess(pid);
+    int core = p->last_core;
+    return !p || cores[core]->running != p || cores[core]->context_switching
+        || p->last_run + p->remaining != time;
+}
+
+bool staleYieldEvent(std::shared_ptr<Process> p , std::uint64_t time) {
+    int core = p->last_core;
+    return !p || core < 0 || cores[core]->running != p
+        || cores[core]->context_switching || p->yield_time != time;
 }
 
 void timerInterruptFinish() {
-    timerInterrupt();
     // check all cores to add exit events
     std::shared_ptr<Process> prev[NUM_CORES];
     for (int i = 0; i < NUM_CORES; i++) {
@@ -155,6 +164,20 @@ void Event::runEvent() {
         }
         case EventType::TimerEnd: {
             timerInterruptFinish();
+            break;
+        }
+        case EventType::ProcessYield: {
+            std::shared_ptr<Process> p = getProcess(this->pid);
+            int core = p->last_core;
+            if (staleYieldEvent(p, this->time))
+                break;
+            p->quantum_credit += CREDIT_GAIN;
+            // if timer at same time, timer will calculate time spent
+            if (!cores[core]->timer_interrupted)
+                calculateTimeSpent(p);
+            contextSwitchOut(core);
+            ready_queue.push(pid);
+            schedule();
             break;
         }
     }   

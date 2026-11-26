@@ -5,18 +5,56 @@
 
 std::queue<int> ready_queue;
 
-/* This should never be called in a cooperative scheduler */
-void timerInterrupt() {
-    // this should never happen, but just in case
-    if (sched_mode == SchedulerMode::Cooperative)
+/* Determine whether process wants to "borrow" time quantum
+ * If yes, determine if it has enough credit */
+void quantumBank(std::shared_ptr<Process> process, int core) {
+    // check if future yield already scheduled, meaning this process just got to run
+    if (process->yield_time > real_time)
         return;
-    for (int i = 0; i < NUM_CORES && !ready_queue.empty(); i++) {
-        if (cores[i]->running && !cores[i]->context_switching) {
+    signed int borrowing = process->cache_hot_until - real_time;
+    if (borrowing > 0) {
+        if (process->quantum_credit >= borrowing) {
+            borrowing = borrowing > TIME_QUANTUM ? TIME_QUANTUM : borrowing;
+            process->quantum_credit -= borrowing;
+            addYieldEvent(process->PID, borrowing);
+        } else {
             int pid = ready_queue.front();
             ready_queue.pop();
-            ready_queue.push(cores[i]->running->PID);
-            contextSwitchOut(i);
-            contextSwitchIn(i, pid);
+            ready_queue.push(process->PID);
+            contextSwitchOut(core);
+            contextSwitchIn(core, pid);
+        }
+    }
+}
+
+/* This should never be called in a cooperative scheduler */
+void timerInterrupt() {
+    switch (sched_mode) {
+        // this should never happen, but just in case
+        case SchedulerMode::Cooperative:
+            return;
+        case SchedulerMode::Preemptive: {
+            for (int i = 0; i < NUM_CORES && !ready_queue.empty(); i++) {
+                if (cores[i]->running && !cores[i]->context_switching 
+                && cores[i]->running->last_run != real_time) {
+                    int pid = ready_queue.front();
+                    ready_queue.pop();
+                    ready_queue.push(cores[i]->running->PID);
+                    contextSwitchOut(i);
+                    contextSwitchIn(i, pid);
+                }
+            }
+            break;    
+        }
+        case SchedulerMode::Hybrid: {
+            for (int i = 0; i < NUM_CORES && !ready_queue.empty(); i++) {
+                // makes sure process has ran for at least half a quantum to be considered to switch
+                if (cores[i]->running && !cores[i]->context_switching 
+                && cores[i]->running->last_run < real_time - 5) {
+                    quantumBank(cores[i]->running, i);
+                }
+            }
+            break;
         }
     }
     schedule();
@@ -24,21 +62,11 @@ void timerInterrupt() {
 
 /* Try to put waiting tasks into idle cores, if any */
 void schedule() {
-    switch(sched_mode) {
-        case SchedulerMode::Preemptive:
-        case SchedulerMode::Cooperative: {
-            for (int i = 0; i < NUM_CORES && !ready_queue.empty(); i++) {
-                if (!cores[i]->running) {
-                    int pid = ready_queue.front();
-                    ready_queue.pop();
-                    contextSwitchIn(i, pid);
-                }
-            }
-            return;
-        }
-        case SchedulerMode::Hybrid: {
-            // TODO
-            return;
+    for (int i = 0; i < NUM_CORES && !ready_queue.empty(); i++) {
+        if (!cores[i]->running) {
+            int pid = ready_queue.front();
+            ready_queue.pop();
+            contextSwitchIn(i, pid);
         }
     }
 }

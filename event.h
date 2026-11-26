@@ -32,7 +32,8 @@ enum class EventType {
     IOStart,
     IOEnd,
     ContextSwitchEnd,
-    TimerEnd
+    TimerEnd,
+    ProcessYield
 };
 
 struct Event {
@@ -58,6 +59,9 @@ public:
 
 void startSimulation(SchedulerMode mode);
 
+std::uint64_t getRemainingQuantum();
+
+void addYieldEvent(int pid, int duration);
 void addIOEvent(int pid);
 void addExitEvent(int core, int pid);
 

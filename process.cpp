@@ -7,7 +7,9 @@
 #define CORE_AFFINITY_PENALTY 3
 #define CACHE_HOT_PENALTY 50
 #define CACHE_HOT_MAX 100
-#define CACHE_HOT_RATIO 0
+#define CACHE_HOT_RATIO 0.5
+#define CREDIT_MAX 50
+int CREDIT_GAIN = 2;
 
 std::vector<std::shared_ptr<Process>> process_list;
 std::uint64_t context_switches = 0;
@@ -35,6 +37,25 @@ void blockIO(int pid) {
     p->io.erase(p->io.begin());
     contextSwitchOut(p->last_core);
     schedule();
+}
+
+/* Used for hybrid mode for processes to get quantum credit */
+void futureYield(std::shared_ptr<Process> process) {
+    // check if future yield already exists or nothing to yield for
+    if (process->yield_time > real_time || ready_queue.empty())
+        return;
+    // if no IO or no IO in current quantum, try to yield early
+    std::uint64_t rem =  getRemainingQuantum();
+    if ((process->io.empty() || 
+    process->io.front().start_time > process->finished + rem)
+    && rem >= 5 && process->quantum_credit < CREDIT_MAX
+    && process->remaining > rem) {
+        int duration = rem - CREDIT_GAIN;
+        // return if cache is hot at early yield time
+        if (process->cache_hot_until > real_time + duration)
+            return;
+        addYieldEvent(process->PID, duration);
+    }
 }
 
 /* Flush the cache at C3 */
@@ -104,6 +125,11 @@ void contextSwitchFinish(int pid) {
             addIOEvent(pid);
             // generate exit event if current process will finish before time quantum
             addExitEvent(core->core_num, pid);
+
+            // if hybrid, try to yield early to get quantum credit
+            if (sched_mode == SchedulerMode::Hybrid)
+                futureYield(process);
+
             return;
         }
     } 
@@ -116,6 +142,8 @@ void contextSwitchOut(int core_id) {
         core->running->context_switched_hot = true;
         core->running->cache_hot_until = 0;
     }
+    // remove stale yields, if any
+    core->running->yield_time = 0;
         
     core->running = NULL;
     // this is safety net for failed context switch

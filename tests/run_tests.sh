@@ -12,7 +12,7 @@
 cd "$(dirname "$0")/.." || exit 1
 
 SIM=./sim
-MODES=${MODES:-"0 1"}
+MODES=${MODES:-"0 1 2"}
 SEEDS=${SEEDS:-"0"}
 TIMEOUT=${TIMEOUT:-60}
 STRICT_EXPECT=${STRICT_EXPECT:-0}

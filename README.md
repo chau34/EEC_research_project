@@ -10,6 +10,8 @@ Simulator to compare energy efficiency of preemptive and cooperative schedulers.
   - Caleb: testing/analyzing time quantum and core nums
   - Chau: hybrid scheduler
 
+TODO for Chau: change addIOEvent to return bool so that we don't add stale exit events after, credit decay? 
+
 <br>Features of simulator:
   - Multi-core implementation
   - C states and P states
